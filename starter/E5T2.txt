@@ -2,12 +2,45 @@
 
 ## Scan infrastructure as code templates
 
-### Example vulnerability
+Tool: Checkov
+
+Description: Checkov is an open-source static analysis tool for infrastructure as code (IaC) that scans Terraform, CloudFormation, Kubernetes, and ARM templates for misconfigurations and security best practices.
+
+###  Example vulnerability
+
+Violation: Unencrypted S3 Bucket
+
+Description: Checkov can detect if an S3 bucket defined in a CloudFormation template is not configured with server-side encryption.
+ This is crucial for protecting data at rest and complying with security standards like PCI-DSS.
 
 ##Scan AMI’s or containers for OS vulnerabilities
 
+Tool: Trivy
+
+Description: Trivy is a comprehensive and easy-to-use open-source vulnerability scanner for containers. It scans container images for OS vulnerabilities, application dependencies, and config issues.
+
 ### Example vulnerability
+Vulnerability: CVE-2021-3156 (Sudo Buffer Overflow)
+
+Description: Trivy can detect if a container image includes a version of sudo that is vulnerable to CVE-2021-3156, a buffer overflow vulnerability that allows unprivileged users to gain root privileges.
+ This is a critical security issue that needs to be addressed to prevent privilege escalation attacks.
+
+
 
 ##Scan an AWS environment for cloud configuration vulnerabilities
 
-### Example vulnerability
+Tool: Prowler
+
+Description: Prowler is an open-source tool that performs AWS security best practices assessments, audits, and hardening checks based on AWS CIS benchmarks and other security frameworks.
+
+#### Example vulnerability
+Violation: IAM Policy Too Permissive
+
+Description: Prowler can identify IAM policies that grant overly broad permissions, such as allowing s3:* on all resources. This can lead to potential security risks, as users might have more access than necessary, violating the principle of least privilege.
+
+
+
+
+
+
+

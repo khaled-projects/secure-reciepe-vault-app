@@ -1,3 +1,92 @@
 Research and analyze which of the vulnerabilities appear to be related to the code that was deployed for the environment in this project.
 
-Bonus - provide recommendations on how to remediate the vulnerabilities.
+# s3-bucket-versioning-enabled (5 Noncompliant resource(s)):
+
+Remediation Action:  Enable versioning for the S3 buckets.
+Risk: Without versioning, you may lose historical versions of objects in your bucket, which can be critical for data recovery and auditing.
+
+## ec2-instance-no-public-ip (2 Noncompliant resource(s)):
+
+Remediation Action: Ensure that EC2 instances do not have public IP addresses unless absolutely necessary.
+Risk: Instances with public IPs are more exposed to the internet, increasing the risk of attacks.
+
+### securityhub-cloudtrail-enabled-7e0e8ff4 (1 Noncompliant resource(s)):
+
+Remediation Action: Ensure that AWS CloudTrail is enabled for your account.
+Risk: Without CloudTrail, you lack visibility into API activity in your AWS account, which is crucial for security auditing and compliance.
+
+#### securityhub-ec2-ebs-encryption-by-default-8931749d (1 Noncompliant resource(s))
+
+Remediation Action: Enable default encryption for EBS volumes.
+Risk: Unencrypted EBS volumes can expose sensitive data if a volume is compromised or mistakenly shared.
+
+
+##### securityhub-s3-bucket-default-lock-enabled-03c35f71
+
+Remediation: Enable default object lock for affected S3 buckets to safeguard against accidental data alterations and ensure compliance with security standards.
+Risk: Non-compliant S3 buckets lack default object lock, exposing data to potential unauthorized modifications or deletions.
+
+###### MFA should be enabled for the root user
+
+Risk: Lack of MFA for the root user increases the risk of unauthorized access, potentially leading to security breaches or account compromise.
+Remediation: Enable MFA for the root user to enhance the security posture of the AWS account and reduce the risk of unauthorized access.
+
+####### Security groups should not allow ingress from 0.0.0.0/0 or ::/0 to port 22
+
+Risk: Allowing unrestricted access (0.0.0.0/0 or ::/0) to port 22 (SSH) increases the likelihood of unauthorized access and potential security breaches.
+Remediation: Modify security group rules to restrict access to port 22 to specific IP ranges or only trusted networks, reducing the exposure to potential threats.
+
+######## : Security groups should not allow ingress from 0.0.0.0/0 or ::/0 to port 3389
+
+Risk: Allowing unrestricted access (0.0.0.0/0 or ::/0) to port 3389 (RDP) increases the risk of unauthorized access to instances, potentially leading to compromise or data breaches.
+Remediation: Update security group rules to restrict access to port 3389 to specific IP ranges or only trusted networks, reducing the exposure to potential threats.
+
+######### :VPC default security groups should not allow inbound or outbound traffic
+
+Risk: Default security groups allowing inbound or outbound traffic may lead to unintended exposure of resources to the internet, increasing the risk of unauthorized access or data exfiltration.
+Remediation: Review and adjust the rules of default security groups to deny all inbound and outbound traffic by default, except for necessary exceptions.
+
+########## : VPC flow logging should be enabled in all VPCs
+
+Risk: Without VPC flow logging, it is challenging to monitor network traffic and detect potential security threats or anomalies within VPCs, increasing the risk of undetected security incidents.
+Remediation: Enable VPC flow logging for all VPCs to capture and analyze network traffic, enhancing visibility and security monitoring capabilities.
+
+########### : CloudTrail should be enabled and configured with at least one multi-Region trail that includes read and write management events
+
+Risk: Without a properly configured CloudTrail, it is challenging to monitor and audit AWS API activity, potentially leading to undetected security incidents or compliance violations.
+Remediation: Enable CloudTrail and configure a multi-Region trail to capture read and write management events across AWS services, ensuring comprehensive visibility and compliance monitoring.
+
+############: Ensure IAM password policy requires at least one uppercase letter
+
+Risk: Without a password policy requiring at least one uppercase letter, user passwords may be weaker and more susceptible to brute-force attacks, compromising account security.
+Remediation: Update the IAM password policy to enforce the requirement of at least one uppercase letter in user passwords, strengthening account security against password-related threats.
+
+############: Ensure IAM password policy requires at least one lowercase letter
+
+Risk: Absence of a password policy requiring at least one lowercase letter in passwords increases the likelihood of weak passwords being used, exposing accounts to security vulnerabilities.
+Remediation: Modify the IAM password policy to mandate the inclusion of at least one lowercase letter in user passwords, enhancing overall account security.
+
+############: Ensure IAM password policy requires at least one symbol
+
+Risk: Not enforcing the requirement of at least one symbol in passwords weakens password complexity, making accounts more susceptible to unauthorized access or compromise.
+Remediation: Adjust the IAM password policy to mandate the inclusion of at least one symbol in user passwords, enhancing password strength and security.
+
+#############: Ensure IAM password policy requires a minimum password length of 14 or greater
+
+Risk: Setting a password length below 14 characters decreases password entropy, making it easier for attackers to crack passwords through brute-force or dictionary attacks.
+Remediation: Adjust the IAM password policy to mandate a minimum password length of 14 characters or greater, strengthening password security against exploitation.
+
+#############:  Ensure IAM password policy prevents password reuse
+
+Risk: Allowing password reuse increases the risk of compromised accounts, as reused passwords may have been previously exposed or compromised.
+Remediation: Configure the IAM password policy to disallow password reuse, preventing users from recycling old or previously compromised passwords and enhancing account security.
+
+#############:  Ensure IAM password policy expires passwords within 90 days or less
+
+Risk: Failure to enforce password expiration increases the likelihood of long-term exposure to compromised passwords, potentially leading to unauthorized access or security breaches.
+Remediation: Set the IAM password policy to require password expiration within 90 days or less, prompting users to regularly update their passwords and reducing the risk of password-related security incidents.
+
+#############:  Ensure a support role has been created to manage incidents with AWS Support
+
+Risk: Absence of a dedicated support role hampers incident management and resolution processes, potentially delaying response times and exacerbating the impact of security incidents or operational issues.
+Remediation: Create a dedicated support role with appropriate permissions to manage incidents with AWS Support, facilitating streamlined incident response and resolution procedures.

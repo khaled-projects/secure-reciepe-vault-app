@@ -1,5 +1,120 @@
 
 
 # Identify 2-3 changes that can be made to our environment to prevent an ssh brute force attack from the internet.
+ 
+ 1- Restrict SSH Access
+
+Old Configuration:
+
+  WebAppSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: WebAppSG
+      GroupDescription: "Security group for this application server"
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 0.0.0.0/0
+Updated Configuration:
+
+  WebAppSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: WebAppSG
+      GroupDescription: "Security group for this application server"
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        SourceSecurityGroupId: !GetAtt AppLoadBalancerSG.GroupId
+Explanation:
+
+The SSH access is restricted to allow connections only from the Load Balancer security group (AppLoadBalancerSG) instead of allowing open access from any IP (0.0.0.0/0).
+ 
+ 2- Use IAM Policies to Restrict S3 Access
+
+Old Configuration:
+
+  InstanceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      Policies:
+        - PolicyName: InstanceRolePolicy-C3
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action: 's3:*'
+                Resource: '*'
+Updated Configuration:
+
+  InstanceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      Policies:
+        - PolicyName: InstanceRolePolicy-C3
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:ListBucket'
+                  - 's3:GetObject'
+                Resource: 
+                  - !Sub arn:aws:s3:::${S3FreeRecipies}
+                  - !Sub arn:aws:s3:::${S3FreeRecipies}/*
+              - Effect: Deny
+                Action: 's3:*'
+                Resource: 
+                  - !Sub arn:aws:s3:::${S3SecretRecipies}
+                  - !Sub arn:aws:s3:::${S3SecretRecipies}/*
+Explanation:
+The IAM policy is updated to allow only s3:ListBucket and s3:GetObject actions on the S3FreeRecipies bucket while denying all actions on the S3SecretRecipies bucket, thus restricting access to sensitive data.
+
+3- Implement Multi-Factor Authentication (MFA)
+
+To enforce MFA, update the IAM role to require MFA for accessing sensitive resources. This is typically done via the IAM console or by applying policies that conditionally allow actions based on MFA.
+Example Policy:
+
+  InstanceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      Policies:
+        - PolicyName: InstanceRolePolicy-MFA
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:ListBucket'
+                  - 's3:GetObject'
+                Resource: 
+                  - !Sub arn:aws:s3:::${S3FreeRecipies}
+                  - !Sub arn:aws:s3:::${S3FreeRecipies}/*
+                Condition:
+                  Bool:
+                    aws:MultiFactorAuthPresent: true
+Explanation:
+This policy ensures that the actions s3:ListBucket and s3:GetObject are only allowed if MFA is present, adding an extra layer of security even if API credentials are compromised.
 
 # Neither instance should have had access to the secret recipes bucket, in the even that instance API credentials were compromised how could we have prevented access to sensitive data.
+
+
+1. Place Application in a Private Subnet
+
+Method: Move the application instances to a private subnet that is not directly accessible from the internet.
+Explanation: This limits exposure to potential attacks by isolating the instances from direct internet access.
+
+2. Update IAM Policies to Restrict S3 Access
+
+Method: Implement granular IAM policies and S3 bucket policies to allow access only to specific roles or users, and configure policies to deny access unless the request is made with MFA.
+Explanation: Restricting access to the S3 bucket ensures that even if API credentials are compromised, unauthorized access to sensitive data is prevented.
+
+3. Require Multi-Factor Authentication (MFA)
+
+Method: Enforce MFA for accessing sensitive resources, including S3 buckets.
+Explanation: MFA provides an additional layer of security, making it harder for attackers to access sensitive data even with compromised credentials.
+
+
+
+
+
+

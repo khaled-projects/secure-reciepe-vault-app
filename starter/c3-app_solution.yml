@@ -1,4 +1,3 @@
-Description:  This template deploys ec2 instances for the project starter
 
 Parameters:
   AmiIdRecipeWebServiceInstance:
@@ -10,7 +9,16 @@ Parameters:
   KeyPair:
     Type: String
     Description: "Name of an existing KeyPair you will use to access the EC2 instances in this exercise. Be sure you have access to the private key file corresponding to this keypair."
-
+  PrivateSubnetId:
+    Type: String
+    Description: "ID of the private subnet where the WebInstance will be deployed."
+  EnvironmentName:
+    Type: String
+    Description: "Name of the environment"
+    Default: prod
+  KMSKeyArn:
+    Type: String
+    Description: "ARN of the KMS Key"
 
 Resources:
   InstanceRole:
@@ -22,18 +30,12 @@ Resources:
           - Effect: Allow
             Principal:
               Service:
-              - ec2.amazonaws.com
+                - ec2.amazonaws.com
             Action:
               - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess # Example managed policy
       Path: /
-      Policies:
-        - PolicyName: InstanceRolePolicy-C3
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Effect: Allow
-                Action: 's3:*'
-                Resource: '*'
 
   InstanceProfileRole:
     Type: AWS::IAM::InstanceProfile
@@ -41,30 +43,28 @@ Resources:
       Path: /
       Roles:
         - !Ref InstanceRole
-
+     
   WebAppSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: WebAppSG
       GroupDescription: "Security group for this application server"
       SecurityGroupEgress:
-      - IpProtocol: -1
-        CidrIp: 0.0.0.0/0
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
       SecurityGroupIngress:
-      - IpProtocol: -1
-        CidrIp: 0.0.0.0/0
-      - IpProtocol: tcp
-        FromPort: 22
-        ToPort: 22
-        CidrIp: 0.0.0.0/0
-      - IpProtocol: tcp
-        FromPort: 5000
-        ToPort: 5000
-        CidrIp: 0.0.0.0/0
-      - IpProtocol: tcp
-        FromPort: 80
-        ToPort: 80
-        CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId: !Ref AppLoadBalancerSG
+        - IpProtocol: tcp
+          FromPort: 5000
+          ToPort: 5000
+          SourceSecurityGroupId: !Ref AppLoadBalancerSG
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref AppLoadBalancerSG
       VpcId: !ImportValue VpcId
 
   RecipeWebServiceInstance:
@@ -74,26 +74,30 @@ Resources:
       InstanceType: t3.micro
       KeyName: !Ref KeyPair
       SecurityGroupIds:
-      - !GetAtt WebAppSG.GroupId
-      SubnetId: !ImportValue PublicSubnetTrusted
+        - !GetAtt WebAppSG.GroupId
+      SubnetId: !Ref PrivateSubnetId
       IamInstanceProfile: !Ref InstanceProfileRole
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeType: gp2
+            Encrypted: true
+            KmsKeyId: !Ref KMSKeyArn
       Tags:
-      - Key: "Name"
-        Value: "Web Service Instance - C3"
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-web-server"
       UserData:
         Fn::Base64:
           Fn::Sub:
             - |
               #!/bin/bash
-              echo "Environment=S3_FREE_RECIPES="${S3FreeRecipies} | sudo tee -a /lib/systemd/system/flask.service
-              echo "Environment=S3_SECRET_RECIPES="${S3SecretRecipies} | sudo tee -a /lib/systemd/system/flask.service
+              echo "Environment=S3_FREE_RECIPES=${S3FreeRecipies}" | sudo tee -a /lib/systemd/system/flask.service
+              echo "Environment=S3_SECRET_RECIPES=${S3SecretRecipies}" | sudo tee -a /lib/systemd/system/flask.service
               systemctl daemon-reload
               sleep 30
               service flask restart
             - S3FreeRecipies: !ImportValue BucketNameRecipesFree
               S3SecretRecipies: !ImportValue BucketNameRecipesSecret
-
-# Add code for Exercise 3
 
   AppLoadBalancerSG:
     Type: AWS::EC2::SecurityGroup
@@ -101,13 +105,13 @@ Resources:
       GroupName: AppLoadBalancerSG
       GroupDescription: "Security group for this application server"
       SecurityGroupEgress:
-      - IpProtocol: -1
-        CidrIp: 0.0.0.0/0
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
       SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: 80
-        ToPort: 80
-        CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
       VpcId: !ImportValue VpcId
 
   AppEIP:
@@ -115,16 +119,22 @@ Resources:
     Properties:
       Domain: vpc
       InstanceId: !Ref RecipeWebServiceInstance
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-Elastic-IP"
 
   AppLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Name: c1-web-service-alb
+      Name: !Sub "${EnvironmentName}-ALB"
       SecurityGroups:
-      - !GetAtt AppLoadBalancerSG.GroupId
+        - !GetAtt AppLoadBalancerSG.GroupId
       Subnets:
         - !ImportValue PublicSubnetTrusted
         - !ImportValue PublicSubnetUnTrusted
+      Tags:
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-ALB"
 
   AppLoadBalancerListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -142,12 +152,12 @@ Resources:
       HealthCheckEnabled: true
       HealthCheckIntervalSeconds: 10
       HealthCheckPath: /health
-      Name: AppTargetGroup
+      Name: !Sub "${EnvironmentName}-TG"
       Port: 5000
       VpcId: !ImportValue VpcId
       Protocol: HTTP
       Targets:
-      - Id: !Ref RecipeWebServiceInstance
+        - Id: !Ref RecipeWebServiceInstance
 
   AttackInstanceSG:
     Type: AWS::EC2::SecurityGroup
@@ -155,13 +165,13 @@ Resources:
       GroupName: AttackInstanceSG
       GroupDescription: "Security group for the attack instance"
       SecurityGroupEgress:
-      - IpProtocol: -1
-        CidrIp: 0.0.0.0/0
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
       SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: 22
-        ToPort: 22
-        CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
       VpcId: !ImportValue VpcId
 
   AttackInstance:
@@ -170,13 +180,18 @@ Resources:
       ImageId: !Ref AmiIdAttackInstance
       InstanceType: t3.micro
       KeyName: !Ref KeyPair
-      IamInstanceProfile: !Ref InstanceProfileRole
       SecurityGroupIds:
-      - !GetAtt AttackInstanceSG.GroupId
+        - !GetAtt AttackInstanceSG.GroupId
       SubnetId: !ImportValue PublicSubnetUnTrusted
+      IamInstanceProfile: !Ref InstanceProfileRole
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeType: gp2
+            Encrypted: true
       Tags:
-      - Key: "Name"
-        Value: "Attack Instance - C3"
+        - Key: Name
+          Value: !Sub "${EnvironmentName}-ATTACK-EC2"
 
 Outputs:
   AttackInstanceIP:

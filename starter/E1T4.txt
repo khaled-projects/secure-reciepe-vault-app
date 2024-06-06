@@ -1,5 +1,39 @@
 Based on the architecture diagram, and the steps you have taken so far to upload data and access the application web service, identify at least 2 obvious poor practices as it relates to security.  Include justification.
 
-# Poor practice 1
+# Poor practice 1: Unsecured Communication Channels:
 
-# Poor practice 2
+Justification:
+
+The architecture diagram reveals two major unsecured communication channels:
+
+1- Use of HTTP Instead of HTTPS: The web service is hosted by an HTTP load balancer listening on port 80, which means data is transmitted unencrypted. This makes it susceptible to interception and tampering.
+Accessing S3 Buckets via the Internet: The EC2 instance accesses the S3 bucket over the internet via an internet gateway. This exposes the traffic to internet-based threats and potential data breaches.
+
+Risks:
+
+2- Data Interception and Tampering: HTTP traffic can be intercepted and modified, compromising data integrity and confidentiality.
+Exposure to Internet Threats: Traffic to the S3 bucket via the internet is vulnerable to interception and man-in-the-middle attacks.
+Compliance Issues: Unencrypted and publicly routed data can lead to non-compliance with regulations such as GDPR, HIPAA, etc.
+
+Recommendation:
+
+Use HTTPS Instead of HTTP: Configure the load balancer to use HTTPS by installing an SSL/TLS certificate and listening on port 443. This ensures that all data transmitted between clients and the web service is encrypted.
+Use VPC Endpoints for S3 Access: Set up an S3 VPC endpoint in your VPC to enable secure and private access to the S3 bucket without the need for internet routing. Modify the route tables to direct S3 traffic through the VPC endpoint.
+
+# Poor practice 2 : Public Access to the Web Application Instance
+
+Justification:
+
+The web application instance is accessible via a public IP address, which significantly increases the attack surface. 
+This setup is vulnerable to various types of attacks, including brute force attacks, unauthorized access, and exploitation of any vulnerabilities present in the application.
+
+Risks:
+
+Increased Attack Surface: Publicly accessible instances are more likely to be targeted by automated attacks and bots.
+Unauthorized Access: Without additional security measures, it is easier for attackers to gain unauthorized access to the instance.
+Exploitation of Vulnerabilities: Any security flaws in the web application or the underlying instance could be exploited, leading to potential data breaches or service disruptions.
+
+Recommendation:
+
+Restrict Public Access: Place the web application instance in a private subnet and access it through a bastion host or a VPN.
+Use Security Groups and Network ACLs: Control inbound and outbound traffic to the instance by configuring security groups and network ACLs to allow only necessary communication.

@@ -1,3 +1,36 @@
 # Describe GuardDuty findings that were detected related to the brute force attack
 
+
+GuardDuty detected findings related to the brute force attack, specifically indicating an EC2 instance's involvement in SSH brute force attempts. These findings are flagged under the category of "UnauthorizedAccess
+/SSHBruteForce." The severity of these findings is categorized as Low by default.
+ However, if the EC2 instance is being exploited to perform the brute force attack, the severity is elevated to High.
+
+The findings detail that the detected EC2 instance was engaged in brute force attacks targeting SSH services on Linux-based systems. 
+This behavior suggests potential unauthorized access to AWS resources, indicating a security threat within the environment. 
+GuardDuty specifically monitors traffic on port 22 for SSH activity, and if such activity is identified, it triggers these findings. 
+Additionally, GuardDuty offers remediation recommendations, advising users to set up suppression rules if the targeted EC2 instance serves as a bastion host, as such activity might be expected in certain configurations.
+
+
 # Research the AWS Guard Duty documentation page and explain how GuardDuty may have detected this attack - i.e. what was its source of information.
+
+GuardDuty employs a combination of machine learning, anomaly detection, and integrated threat intelligence feeds to detect and prioritize potential security threats within AWS environments. Here's a detailed breakdown of how GuardDuty may have detected a brute force attack targeting SSH:
+
+ ####  VPC Flow Logs: 
+
+GuardDuty likely analyzes VPC Flow Logs, which capture information about the IP traffic going to and from network interfaces in your VPC. 
+ It monitors traffic patterns, including connections to SSH ports (port 22) on EC2 instances.
+
+#### CloudTrail Logs:
+
+ GuardDuty may also leverage AWS CloudTrail logs, which provide a record of actions taken by a user, role, or AWS service in your environment. 
+ CloudTrail logs can include information about SSH-related API calls, such as DescribeInstances and RunInstances, which might indicate instances being created or managed for the purpose of launching brute force attacks.
+
+#### DNS Logs:
+ DNS logs provide information about domain name resolutions within your VPC.
+  GuardDuty can detect unusual or suspicious DNS requests that might be associated with malicious activities, such as DNS tunneling or domain fluxing used in advanced attacks.
+
+####  Endpoint Logs: 
+GuardDuty may analyze endpoint logs from AWS services like Amazon EC2, Amazon GuardDuty, and AWS WAF, which can provide insights into user login attempts, failed authentication events, and other security-relevant activities.
+
+
+By correlating information from these diverse data sources, GuardDuty can identify anomalous patterns indicative of brute force attacks, such as a high volume of failed SSH login attempts from a single IP address or unusual login patterns across multiple instances. GuardDuty then applies machine learning algorithms to distinguish between legitimate and malicious activities, alerting users to potential security threats and providing actionable insights for remediation.
